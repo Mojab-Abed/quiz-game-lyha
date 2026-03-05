@@ -439,7 +439,7 @@
         
         setTimeout(() => {
           onAnswer(question.id, isCorrect, false, false);
-        }, 5000);
+        }, 2000);
       };
 
       return (
@@ -614,23 +614,35 @@
       }, [timerActive, timeLeft]);
 
       const handleTimeUp = () => {
-        playAlarmSound(); // 🔔 Play alarm when time expires
-        setTimerActive(false);
-        setTimeExpired(true);
-        // Don't add to score - just reveal correct answer
-        // Wait 2 seconds then return to grid
-        setTimeout(() => {
-          handleAnswer(currentQuestionId, false, false, true);
-        }, 5000);
-      };
+  if (!timeExpired) {
+    setTimeExpired(true);
+    setTimerActive(false);
+    
+
+    // Automatically mark question as timeout
+    setQuestions(prev => prev.map(q => {
+      if (q.id === currentQuestionId) {
+        return { ...q, answered: true, isCorrect: false };
+      }
+      return q;
+    }));
+
+    // Go back to grid after 2 seconds
+    setTimeout(() => {
+      setGameState('grid');
+      setCurrentQuestionId(null);
+      setTimeExpired(false);
+    }, 3000);
+  }
+};
 
       const startQuestion = (question) => {
-        setCurrentQuestionId(question.id);
-        setTimeLeft(30);
-        setTimerActive(true);
-        setTimeExpired(false);
-        setGameState('question');
-      };
+  setCurrentQuestionId(question.id);
+  setTimeLeft(30);        // Reset timer to 30s
+  setTimerActive(true);    // Start timer
+  setTimeExpired(false);   // Reset expiration
+  setGameState('question'); // Switch to question view
+};
 
       const handleAnswer = (id, isCorrect, forceExit = false, isTimeout = false) => {
         setTimerActive(false);
@@ -667,7 +679,7 @@
         setScore(0);
         setGameState('grid');
         setCurrentQuestionId(null);
-        setTimeLeft(60);
+        setTimeLeft(30);
         setTimerActive(false);
         setTimeExpired(false);
       };
@@ -695,19 +707,19 @@
               {/* Section Links */}
               <div className="flex items-center gap-2">
                 <a 
-                  href="#section1" 
+                  href="index.html" 
                   className="section-link px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium shadow-sm"
                 >
                  الجولة الاولى
                 </a>
                 <a 
-                  href="#section2" 
+                  href="round2.html" 
                   className="section-link px-4 py-2 bg-white text-gray-700 rounded-lg text-sm font-medium shadow-sm border border-gray-200 hover:bg-gray-50"
                 >
                   الجولة التانية
                 </a>
                 <a 
-                  href="#section3" 
+                  href="round3.html" 
                   className="section-link px-4 py-2 bg-white text-gray-700 rounded-lg text-sm font-medium shadow-sm border border-gray-200 hover:bg-gray-50"
                 >
                   الجولة الثالثة
