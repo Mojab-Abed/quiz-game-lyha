@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تحدي المعرفة الإسلامية</title>
+  
+  <!-- React & ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  
+  <!-- Babel for JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Framer Motion -->
+  <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Custom Styles -->
+  <style>
+    @import url('https://fontsource.fontcdn.xyz/fonts/inter.css');
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+      min-height: 100vh;
+    }
+    
+    .quiz-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+    
+    /* Grid Animations */
+    .grid-box {
+      transition: all 0.2s ease;
+    }
+    
+    .grid-box:hover:not(:disabled) {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 25px rgba(59, 130, 246, 0.15);
+    }
+    
+    .grid-box:active:not(:disabled) {
+      transform: scale(0.95);
+    }
+    
+    /* Button Animations */
+    .option-btn {
+      transition: all 0.2s ease;
+    }
+    
+    .option-btn:hover:not(:disabled) {
+      transform: translateX(4px);
+    }
+    
+    .option-btn:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+    
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: #a1a1a1;
+    }
+    
+    /* Selection Color */
+    ::selection {
+      background: rgba(59, 130, 246, 0.2);
+      color: #1e40af;
+    }
+    
+    /* Responsive Typography */
+    @media (max-width: 640px) {
+      .question-text {
+        font-size: 1.125rem;
+      }
+    }
+    
+    @media (min-width: 641px) {
+      .question-text {
+        font-size: 1.5rem;
+      }
+    }
+    
+    /* Section Links */
+    .section-link {
+      transition: all 0.2s ease;
+    }
+    
+    .section-link:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    /* 🔔 Alarm Pulse Animation */
+    @keyframes alarm-pulse {
+      0%, 100% { 
+        transform: scale(1); 
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); 
+      }
+      50% { 
+        transform: scale(1.05); 
+        box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); 
+      }
+    }
+
+    .timer-alarm {
+      animation: alarm-pulse 0.5s ease-in-out 2;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <!-- 🔔 Alarm Sound for Timer Expiry -->
+  <audio id="alarm-sound" preload="auto">
+  <source src="data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA//tQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAACAAADhAC7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7u7//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAUHAAAAAAAAAOSj8R8JAAAAAAD/+xDEAAPAAAGkAAAAIAAANIAAAARMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV" type="audio/mpeg">
+</audio>
+  
+  <script type="text/babel">
+    const { useState, useEffect, useCallback } = React;
+    const { motion, AnimatePresence } = window.Motion;
+    
+    // 🔔 Play alarm sound when timer expires
+    const playAlarmSound = () => {
+      try {
+        const alarm = document.getElementById('alarm-sound');
+        if (alarm) {
+          alarm.currentTime = 0; // Reset to start
+          alarm.play().catch(e => {
+            // Handle autoplay restrictions gracefully
+            console.log('Audio play blocked (user interaction required):', e);
+          });
+        }
+      } catch (error) {
+        console.error('Error playing alarm:', error);
+      }
+    };
+
+    // ============================================
+    // FILE: /src/questions.js
+    // ============================================
+    const generateQuestions = () => {
+      const baseQuestions = [
+     {
+    q: "من هو الصحابي الذي أخذ القرآن عن النبي ﷺ وحفظه كاملاً؟",
+    options: ["عبد الله بن مسعود", "زيد بن ثابت", "أبو موسى الأشعري", "ابن عباس"],
+    a: "عبد الله بن مسعود"
+}, {
+    q: "ما هي أول سورة نزلت جزئيًا؟",
+    options: ["العلق", "المزمل", "المدثر", "الفاتحة"],
+    a: "العلق"
+}, {
+    q: "كم عدد السور التي نزلت في المدينة؟",
+    options: ["28", "29", "30", "31"],
+    a: "28"
+}, {
+    q: "من هو الصحابي الذي أهدى النبي ﷺ الدرع في غزوة أحد؟",
+    options: ["أبو بكر الصديق", "عمر بن الخطاب", "زيد بن حارثة", "عبد الله بن رواحة"],
+    a: "زيد بن حارثة"
+}, {
+    q: "ما اسم الصحابي الذي كان يُعرف بـ 'حبر الأمة'؟",
+    options: ["ابن عباس", "عبد الله بن مسعود", "معاذ بن جبل", "سلمان الفارسي"],
+    a: "ابن عباس"
+}, {
+    q: "كم عدد الآيات التي تتحدث عن الصلاة في القرآن؟",
+    options: ["67", "68", "69", "70"],
+    a: "67"
+}, {
+    q: "من هو الصحابي الذي قاتل مع النبي ﷺ في جميع الغزوات إلا غزوة تبوك؟",
+    options: ["أبو بكر الصديق", "علي بن أبي طالب", "عمر بن الخطاب", "عبد الله بن مسعود"],
+    a: "أبو بكر الصديق"
+}, {
+    q: "ما هي السورة التي سميت باسم نبي ولم يذكر فيها اسم الله؟",
+    options: ["يونس", "هود", "نوح", "محمد"],
+    a: "يونس"
+}, {
+    q: "من هو الصحابي الذي جمع الناس على القرآن في مسجد المدينة؟",
+    options: ["زيد بن ثابت", "ابن عباس", "عبد الله بن مسعود", "أبو موسى الأشعري"],
+    a: "عبد الله بن مسعود"
+}, {
+    q: "كم عدد المرات التي وردت فيها كلمة الجنة في القرآن؟",
+    options: ["66", "67", "68", "69"],
+    a: "66"
+}, {
+    q: "ما اسم الغزوة التي استشهد فيها حمزة بن عبد المطلب؟",
+    options: ["أحد", "بدر", "الخندق", "الخريف"],
+    a: "أحد"
+}, {
+    q: "من هو الصحابي الذي كان يلقب بـ 'سيف الله المسلول'؟",
+    options: ["خالد بن الوليد", "عمر بن الخطاب", "عمرو بن العاص", "طلحة بن عبيد الله"],
+    a: "خالد بن الوليد"
+}, {
+    q: "ما اسم السورة التي نزلت فيها أول آية في الصلاة؟",
+    options: ["المائدة", "البقرة", "العنكبوت", "المزمل"],
+    a: "المائدة"
+}, {
+    q: "كم عدد آيات التحريم في القرآن؟",
+    options: ["7", "8", "9", "10"],
+    a: "9"
+}, {
+    q: "من هو الصحابي الذي حفظ الحديث النبوي وأشهر في روايته؟",
+    options: ["أبو هريرة", "عبد الله بن عباس", "معاذ بن جبل", "أنس بن مالك"],
+    a: "أبو هريرة"
+}, {
+    q: "ما هي السورة التي تسمى بـ 'أم الكتاب'؟",
+    options: ["الفاتحة", "البقرة", "آل عمران", "الأنعام"],
+    a: "البقرة"
+}, {
+    q: "من هو الصحابي الذي استشهد في معركة مؤتة؟",
+    options: ["عبد الله بن رواحة", "زيد بن حارثة", "جعفر بن أبي طالب", "طلحة بن عبيد الله"],
+    a: "عبد الله بن رواحة"
+}, {
+    q: "كم عدد الرسل الذين بعثوا قبل محمد ﷺ حسب القرآن؟",
+    options: ["24", "25", "26", "27"],
+    a: "24"
+}, {
+    q: "ما اسم السورة التي تحتوي على آية الكرسي؟",
+    options: ["البقرة", "آل عمران", "النساء", "المائدة"],
+    a: "البقرة"
+}, {
+    q: "من هو الصحابي الذي كُتبت له آية في القرآن تثني عليه؟",
+    options: ["أبو بكر الصديق", "عثمان بن عفان", "علي بن أبي طالب", "طلحة بن عبيد الله"],
+    a: "عثمان بن عفان"
+}, {
+    q: "ما هي أول غزوة قادها النبي ﷺ بنفسه؟",
+    options: ["بدر", "أحد", "الخندق", "المريسيع"],
+    a: "أحد"
+}, {
+    q: "كم عدد السور التي تبدأ بحروف مقطعة؟",
+    options: ["29", "30", "31", "32"],
+    a: "29"
+}, {
+    q: "من هو الصحابي الذي شُهد له بالصدق والأمانة قبل الإسلام؟",
+    options: ["عبد الله بن عباس", "أبو بكر الصديق", "عمر بن الخطاب", "زيد بن حارثة"],
+    a: "أبو بكر الصديق"
+}, {
+    q: "ما اسم السورة التي نزلت في حادثة الإفك؟",
+    options: ["النور", "الأحزاب", "الحجرات", "التوبة"],
+    a: "النور"
+}, {
+    q: "من هو الصحابي الذي وصفه النبي ﷺ بأنه أعلم أهل الأرض بالفرائض؟",
+    options: ["ابن عباس", "عبد الله بن عمر", "معاذ بن جبل", "أبو هريرة"],
+    a: "ابن عباس"
+}, {
+    q: "كم عدد الآيات التي تحتوي على ذكر النار في القرآن؟",
+    options: ["123", "124", "125", "126"],
+    a: "123"
+}, {
+    q: "من هو الصحابي الذي جمع القرآن بعد وفاة النبي ﷺ؟",
+    options: ["أبو بكر الصديق", "عمر بن الخطاب", "عثمان بن عفان", "زيد بن ثابت"],
+    a: "زيد بن ثابت"
+}, {
+    q: "كم عدد الأنبياء الذين ذكرت أسماؤهم صراحة في القرآن؟",
+    options: ["24", "25", "26", "27"],
+    a: "25"
+}, {
+    q: "ما هي أول سورة نزلت كاملة في القرآن؟",
+    options: ["العلق", "المائدة", "المدثر", "الفاتحة"],
+    a: "المائدة"
+}, {
+    q: "من هو الصحابي الذي كتب الوحي للنبي ﷺ بشكل أكبر عدد مرات؟",
+    options: ["زيد بن ثابت", "معاذ بن جبل", "عبد الله بن عباس", "أبو موسى الأشعري"],
+    a: "زيد بن ثابت"
+}, {
+    q: "كم عدد السور التي تبدأ بالبسملة مرتين في القرآن؟",
+    options: ["1", "2", "3", "4"],
+    a: "1"
+}, {
+    q: "ما اسم السورة التي ذكر فيها اسم نبيين معًا في نفس الآية لأول مرة؟",
+    options: ["يونس", "مريم", "آل عمران", "هود"],
+    a: "آل عمران"
+}, {
+    q: "من هو الصحابي الذي أسلم على يد أبي بكر الصديق؟",
+    options: ["عمر بن الخطاب", "زيد بن حارثة", "سلمان الفارسي", "بلال بن رباح"],
+    a: "عمر بن الخطاب"
+}, {
+    q: "ما عدد الآيات التي تبدأ بكلمة 'قل' في القرآن؟",
+    options: ["320", "350", "400", "410"],
+    a: "320"
+}, {
+    q: "من هو الصحابي الذي قال عنه النبي ﷺ: «ما منكم من أحد إلا وقد كتب اسمه»؟",
+    options: ["زيد بن ثابت", "عبد الله بن مسعود", "أبو ذر الغفاري", "بلال بن رباح"],
+    a: "عبد الله بن مسعود"
+}, {
+    q: "ما اسم السورة التي نزلت في مكة رغم احتوائها على حكم من أحكام الحرب؟",
+    options: ["الأنفال", "التوبة", "الحجرات", "الأنبياء"],
+    a: "الأنفال"
+}, {
+    q: "من هو الصحابي الذي رضي عن نفسه وترك القول في القرآن؟",
+    options: ["عبد الله بن عمر", "ابن عباس", "أبو هريرة", "سلمان الفارسي"],
+    a: "أبو هريرة"
+}, {
+    q: "ما هو عدد آيات السجدة في القرآن؟",
+    options: ["14", "15", "16", "17"],
+    a: "14"
+}, {
+    q: "من هو الصحابي الذي كان يُلقب بـ 'أمين الأمة' بسبب حفظه للقرآن وتفسيره؟",
+    options: ["معاذ بن جبل", "عبد الله بن عباس", "عبد الله بن مسعود", "زيد بن ثابت"],
+    a: "عبد الله بن عباس"
+}, {
+    q: "ما اسم أول غزوة فُرض فيها القتال على المسلمين؟",
+    options: ["أحد", "بدر", "الخندق", "الفتح"],
+    a: "بدر"
+}
+      ];
+
+      return baseQuestions.map((item, index) => ({
+        id: index + 1,
+        question: item.q,
+        options: item.options,
+        correctAnswer: item.a,
+        answered: false,
+        isCorrect: null
+      }));
+    };
+
+    // ============================================
+    // FILE: /src/components/Timer.jsx
+    // ============================================
+    const Timer = ({ timeLeft, isActive, isExpired }) => {
+      const percentage = (timeLeft / 30) * 100;
+      const isLow = timeLeft <= 10;
+
+      return (
+        <div className={`w-full max-w-md mx-auto mb-6 ${isExpired ? 'timer-alarm' : ''}`}>
+          <div className="flex justify-between items-center mb-2 text-sm font-medium text-gray-600">
+            <span className="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              الوقت المتبقي
+            </span>
+            <span className={`${isLow ? 'text-red-600 font-bold' : 'text-gray-800'}`}>
+              {timeLeft}s
+            </span>
+          </div>
+          <div className="h-3 w-full bg-gray-200 rounded-full overflow-hidden">
+            <motion.div 
+              className={`h-full ${isLow ? 'bg-red-500' : 'bg-blue-600'}`}
+              initial={{ width: '100%' }}
+              animate={{ width: `${percentage}%` }}
+              transition={{ duration: 1, ease: "linear" }}
+            />
+          </div>
+        </div>
+      );
+    };
+
+    // ============================================
+    // FILE: /src/components/GridPage.jsx
+    // ============================================
+    const GridPage = ({ questions, onQuestionSelect }) => {
+      return (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          className="w-full max-w-5xl mx-auto p-4"
+        >
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">تحدي المعرفة الإسلامية</h1>
+            <p className="text-gray-500">اختر صندوق للاجابة على السؤال</p>
+          </div>
+
+          <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-3 sm:gap-4">
+            {questions.map((q) => (
+              <button
+                key={q.id}
+                onClick={() => !q.answered && onQuestionSelect(q)}
+                disabled={q.answered}
+                className={`
+                  aspect-square rounded-xl flex items-center justify-center text-lg font-bold shadow-sm transition-all duration-200 grid-box
+                  ${q.answered 
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                    : 'bg-white text-blue-600 hover:bg-blue-50 hover:shadow-md hover:-translate-y-1 active:scale-95 border border-blue-100'}
+                `}
+              >
+                {q.id}
+              </button>
+            ))}
+          </div>
+        </motion.div>
+      );
+    };
+
+    // ============================================
+    // FILE: /src/components/QuestionPage.jsx
+    // ============================================
+    const QuestionPage = ({ question, onAnswer, timeLeft, isActive, timeExpired }) => {
+      const [selectedOption, setSelectedOption] = useState(null);
+      const [isProcessing, setIsProcessing] = useState(false);
+      const [showCorrectAnswer, setShowCorrectAnswer] = useState(false);
+
+      useEffect(() => {
+        setSelectedOption(null);
+        setIsProcessing(false);
+        setShowCorrectAnswer(false);
+      }, [question]);
+
+      // Handle time expiration - show correct answer
+      useEffect(() => {
+        if (timeExpired && !showCorrectAnswer) {
+          setShowCorrectAnswer(true);
+        }
+      }, [timeExpired, showCorrectAnswer]);
+
+      const handleOptionClick = (option) => {
+        if (isProcessing || selectedOption || timeExpired) return;
+        
+        setSelectedOption(option);
+        setIsProcessing(true);
+        
+        const isCorrect = option === question.correctAnswer;
+        
+        setTimeout(() => {
+          onAnswer(question.id, isCorrect, false, false);
+        }, 2000);
+      };
+
+      return (
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 1.05 }}
+          className="w-full max-w-2xl mx-auto p-4 flex flex-col items-center justify-center min-h-[60vh]"
+        >
+          <div className="w-full bg-white rounded-2xl shadow-xl p-6 sm:p-8 border border-gray-100">
+            <div className="flex justify-between items-center mb-6">
+              <span className="text-sm font-semibold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
+                السؤال {question.id}
+              </span>
+              <button 
+                onClick={() => onAnswer(question.id, false, true, false)}
+                className="text-gray-400 hover:text-gray-600 p-2 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="19" y1="12" x2="5" y2="12"></line>
+                  <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+              </button>
+            </div>
+
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-8 leading-relaxed question-text">
+              {question.question}
+            </h2>
+
+            {timeExpired && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm font-medium flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                انتهى الوقت! الاجابة الصحيحة هي 
+              </div>
+            )}
+
+            <div className="space-y-3">
+              {question.options.map((option, idx) => {
+                let btnClass = "w-full p-4 text-left rounded-xl border-2 transition-all duration-200 font-medium text-gray-700 hover:bg-gray-50 hover:border-blue-200 option-btn";
+                
+                const shouldShowCorrect = showCorrectAnswer || timeExpired || selectedOption;
+                
+                if (shouldShowCorrect) {
+                  if (option === question.correctAnswer) {
+                    btnClass = "w-full p-4 text-left rounded-xl border-2 bg-green-50 border-green-500 text-green-700 font-bold";
+                  } else if (option === selectedOption && !timeExpired) {
+                    btnClass = "w-full p-4 text-left rounded-xl border-2 bg-red-50 border-red-500 text-red-700";
+                  } else {
+                    btnClass = "w-full p-4 text-left rounded-xl border-2 border-gray-100 text-gray-400 opacity-50";
+                  }
+                }
+
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => handleOptionClick(option)}
+                    disabled={!!selectedOption || timeExpired}
+                    className={btnClass}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>{option}</span>
+                      {shouldShowCorrect && option === question.correctAnswer && (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                      )}
+                      {selectedOption && option === selectedOption && option !== question.correctAnswer && !timeExpired && (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <line x1="15" y1="9" x2="9" y2="15"></line>
+                          <line x1="9" y1="9" x2="15" y2="15"></line>
+                        </svg>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </motion.div>
+      );
+    };
+
+    // ============================================
+    // FILE: /src/components/FinalScore.jsx
+    // ============================================
+    const FinalScore = ({ score, total, onRestart }) => {
+      const percentage = Math.round((score / total) * 100);
+      
+      let message = "حظا اوفر المرة القادمة";
+      let color = "text-yellow-600";
+      if (percentage >= 80) { message = "ممتاز!"; color = "text-green-600"; }
+      else if (percentage >= 50) { message = "جيد جدا !"; color = "text-blue-600"; }
+
+      return (
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-md mx-auto p-6 text-center"
+        >
+          <div className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
+            <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6 text-yellow-600">
+              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+                <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+                <path d="M4 22h16"></path>
+                <path d="M10 14.66V17"></path>
+                <path d="M14 14.66V17"></path>
+                <path d="M18 22l-1-9a3 3 0 0 0-3-3H10a3 3 0 0 0-3 3l-1 9"></path>
+                <path d="M12 2v4"></path>
+                <path d="M12 10a4 4 0 0 1 4-4"></path>
+              </svg>
+            </div>
+            
+            <h2 className="text-3xl font-bold text-gray-800 mb-2">انتهت الاسئلة!</h2>
+            <p className={`text-xl font-semibold mb-6 ${color}`}>{message}</p>
+            
+            <div className="grid grid-cols-2 gap-4 mb-8">
+              <div className="bg-gray-50 p-4 rounded-xl">
+                <div className="text-sm text-gray-500 mb-1">النتيجة</div>
+                <div className="text-2xl font-bold text-gray-800">{score} / {total}</div>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-xl">
+                <div className="text-sm text-gray-500 mb-1">النسبة</div>
+                <div className="text-2xl font-bold text-gray-800">{percentage}%</div>
+              </div>
+            </div>
+
+            <button
+              onClick={onRestart}
+              className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg shadow-lg shadow-blue-200 transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="1 4 1 10 7 10"></polyline>
+                <polyline points="23 20 23 14 17 14"></polyline>
+                <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+              </svg>
+              العب مرة اخرى
+            </button>
+          </div>
+        </motion.div>
+      );
+    };
+
+    // ============================================
+    // FILE: /src/App.jsx
+    // ============================================
+    const App = () => {
+      const [gameState, setGameState] = useState('grid');
+      const [questions, setQuestions] = useState(generateQuestions());
+      const [currentQuestionId, setCurrentQuestionId] = useState(null);
+      const [score, setScore] = useState(0);
+      const [timeLeft, setTimeLeft] = useState(30);
+      const [timerActive, setTimerActive] = useState(false);
+      const [timeExpired, setTimeExpired] = useState(false);
+
+      useEffect(() => {
+        let interval = null;
+        if (timerActive && timeLeft > 0) {
+          interval = setInterval(() => {
+            setTimeLeft((prev) => prev - 1);
+          }, 1000);
+        } else if (timeLeft === 0 && timerActive) {
+          handleTimeUp();
+        }
+        return () => clearInterval(interval);
+      }, [timerActive, timeLeft]);
+
+      const handleTimeUp = () => {
+  if (!timeExpired) {
+    setTimeExpired(true);
+    setTimerActive(false);
+    
+
+    // Automatically mark question as timeout
+    setQuestions(prev => prev.map(q => {
+      if (q.id === currentQuestionId) {
+        return { ...q, answered: true, isCorrect: false };
+      }
+      return q;
+    }));
+
+    // Go back to grid after 2 seconds
+    setTimeout(() => {
+      setGameState('grid');
+      setCurrentQuestionId(null);
+      setTimeExpired(false);
+    }, 3000);
+  }
+};
+
+      const startQuestion = (question) => {
+  setCurrentQuestionId(question.id);
+  setTimeLeft(30);        // Reset timer to 30s
+  setTimerActive(true);    // Start timer
+  setTimeExpired(false);   // Reset expiration
+  setGameState('question'); // Switch to question view
+};
+
+      const handleAnswer = (id, isCorrect, forceExit = false, isTimeout = false) => {
+        setTimerActive(false);
+        
+        setQuestions(prev => prev.map(q => {
+          if (q.id === id) {
+            return { ...q, answered: true, isCorrect: isCorrect && !isTimeout };
+          }
+          return q;
+        }));
+
+        // Only add score if correct AND not a timeout
+        if (isCorrect && !forceExit && !isTimeout) {
+          setScore(prev => prev + 1);
+        }
+
+        const remaining = questions.filter(q => !q.answered && q.id !== id).length;
+        
+        if (remaining === 0) {
+          setTimeout(() => {
+            setGameState('result');
+          }, 500);
+        } else {
+          setTimeout(() => {
+            setGameState('grid');
+            setCurrentQuestionId(null);
+            setTimeExpired(false);
+          }, 500);
+        }
+      };
+
+      const restartGame = () => {
+        setQuestions(generateQuestions());
+        setScore(0);
+        setGameState('grid');
+        setCurrentQuestionId(null);
+        setTimeLeft(30);
+        setTimerActive(false);
+        setTimeExpired(false);
+      };
+
+      const currentQuestionData = questions.find(q => q.id === currentQuestionId);
+
+      return (
+        <div className="min-h-screen bg-gray-50 text-gray-900 font-sans selection:bg-blue-100">
+          <div className="container mx-auto px-4 py-8 min-h-screen flex flex-col">
+            
+            {/* Header */}
+            <header className="flex justify-between items-center mb-8 pb-4 border-b border-gray-200 flex-wrap gap-4">
+             <div className="flex items-center gap-2">
+    
+    <img 
+      src="logo.svg" 
+      alt="Logo"
+      className="w-8 h-8"
+    />
+الجولة الثالثة
+    
+
+  </div>
+              
+              {/* Section Links */}
+              <div className="flex items-center gap-2">
+              
+                <a 
+                  href="index.html" 
+                  className="section-link px-4 py-2 bg-white text-gray-700 rounded-lg text-sm font-medium shadow-sm border border-gray-200 hover:bg-gray-50"
+                >
+                   الجولة الاولى
+                </a>
+                <a 
+                  href="round2.html" 
+                  className="section-link px-4 py-2 bg-white text-gray-700 rounded-lg text-sm font-medium shadow-sm border border-gray-200 hover:bg-gray-50"
+                >
+                   الجولة التانية
+                </a>
+              </div>
+              
+              <div className="flex items-center gap-4 text-sm font-medium">
+                <div className="bg-white px-3 py-1 rounded-full shadow-sm border border-gray-100">
+                  النقاط: <span className="text-blue-600">{score}</span>
+                </div>
+                <div className="bg-white px-3 py-1 rounded-full shadow-sm border border-gray-100">
+                  الاسئلةالمتبقية: <span className="text-gray-600">{questions.filter(q => !q.answered).length}</span>
+                </div>
+              </div>
+            </header>
+
+            {/* Main Content Area */}
+            <main className="flex-grow flex flex-col justify-center">
+              <AnimatePresence mode="wait">
+                {gameState === 'grid' && (
+                  <GridPage 
+                    key="grid" 
+                    questions={questions} 
+                    onQuestionSelect={startQuestion} 
+                  />
+                )}
+                
+                {gameState === 'question' && currentQuestionData && (
+                  <div key="question" className="w-full">
+                    <Timer timeLeft={timeLeft} isActive={timerActive} isExpired={timeExpired} />
+                    <QuestionPage 
+                      question={currentQuestionData} 
+                      onAnswer={handleAnswer}
+                      timeLeft={timeLeft}
+                      isActive={timerActive}
+                      timeExpired={timeExpired}
+                    />
+                  </div>
+                )}
+
+                {gameState === 'result' && (
+                  <FinalScore 
+                    key="result"
+                    score={score} 
+                    total={questions.length} 
+                    onRestart={restartGame} 
+                  />
+                )}
+              </AnimatePresence>
+            </main>
+
+            {/* Footer */}
+            <footer className="mt-8 text-center text-gray-400 text-sm py-4">
+              <p>© 2026 تصميم مجاب عبيد, جميع الحقوق محفوظة</p>
+            </footer>
+          </div>
+        </div>
+      );
+    };
+
+    // ============================================
+    // RENDER APP
+    // ============================================
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
+
